@@ -1,25 +1,23 @@
-# [AI Master Restaurant Order] 系统知识库
+# [AI Master Restaurant Order] AI Agent 指南
 
-> 最后更新: 2026-02-12
-> 分析进度: [完成]
-> 分析版本: v2.0 (增强版)
+> 最后更新: 2026-02-24
+> 分析进度: [持续维护]
 
 ## 项目概述
 
-基于 Spring Boot 与 DDD（领域驱动设计）架构构建的餐厅点餐系统后端交易引擎，负责从用户下单、商品库存锁定到订单全生命周期管理的核心业务逻辑。
+构建餐厅点餐核心交易引擎，实现从用户下单、库存锁定到订单全生命周期管理的可靠后端服务。
 
 | 属性 | 值 |
 |------|-----|
 | 项目名称 | ai-master |
 | 业务领域 | 餐饮点餐交易引擎 (Restaurant Order) |
 | 技术栈摘要 | Java 17, Spring Boot 2.7.10, MyBatis, MySQL, MapStruct, Lombok |
-| 代码规模 | 54 个 Java 文件, ~1735 行 Java 代码 |
+| 代码规模 | ~54 文件 / ~1.7 KLOC |
 | 核心模块数 | 8 (boot, api, application, client, common, domain, infrastructure, service) |
 | 领域上下文数 | 3 (Order 订单, Goods 商品, Inventory 库存) + 1 (User 用户) |
 | 启动类 | `com.only.ai.master.boot.ApplicationStarter` |
 | 二方依赖 | Transformer v1.2.10 (内部框架) |
-| 作者 | only |
-| 始创日期 | 2020-05-22 |
+| 启动年份（推测） | 2020 年，基于 `ApplicationStarter` 中 `@since 2020-05-22` 注解 |
 
 ## 快速导航
 
@@ -319,26 +317,113 @@ stateDiagram-v2
 
 ## 开发规范
 
-> 参考 `~/ai/rules/` 目录下的开发规范体系
+> 完整规范体系位于 `~/ai/rules/` 目录，以下为各领域核心要点摘录。
 
-### 需求与设计
-- PRD 模板参考 `~/ai/rules/requirement/requirement-template.md` (SCQA 表达模式)
-- 概要设计参考 `~/ai/rules/design/architecture-template.md` (DDD 六边形架构)
-- 详细设计参考 `~/ai/rules/design/design-template.md`
-- 设计原则参考 `~/ai/rules/design/design-guidelines.md`
+### 需求规范
+
+> 详见 `~/ai/rules/requirement/requirement-template.md`
+
+- **文档定位**: 产品说明书，而非需求说明文档
+- **表达模式**: SCQA (Situation-Complication-Question-Answer)
+- **组织形式**: 产品 → 模块 → 菜单 → 功能 → 操作
+- **版本记录**: 每次变动带版本号 (`N` 新建 / `A` 增加 / `M` 更改 / `D` 删除)
+- **目标定义**: OKR 格式，指标满足 SMART 原则
+- **功能清单**: 包含使用场景、前提条件、处理规则、后置处理
+- **非功能需求**: 覆盖权限、性能、安全、兼容性
+
+### 设计规范
+
+> 详见 `~/ai/rules/design/design-guidelines.md` 和 `~/ai/rules/design/architecture-template.md`
+
+- **架构风格**: DDD 六边形架构 + 整洁架构 + CQRS
+- **设计原则**: SOLID / KISS / DRY / YAGNI
+- **DDD 实践**:
+  - 统一语言：业务与技术共享同一术语体系
+  - 限界上下文：明确业务边界，避免概念混淆
+  - 聚合根：以聚合为中心设计业务一致性边界
+  - 领域事件：事件驱动实现业务解耦
+- **概要设计结构**: 业务分析 (名词定义 + 流程 + 领域模型) → 概要设计 (系统架构 + 能力定义 + 技术选型/VALET) → 详设映射
+- **文档图表**: 统一使用 Mermaid 绘制 (C4 架构图、ER 图、时序图、状态图、流程图)
+- **设计评审**: 完整性 (正确/完备/业务闭环) + 健壮性 (安全/容错/稳定/一致) + 质量属性 (可扩展/可维护/可测试/可部署)
 
 ### 代码规范
-- Java 编码规范: `~/ai/rules/coding/java-guidelines.md`
-- 工程结构规范: `~/ai/rules/coding/project-structure.md` (DDD 六边形分层)
-- Maven 规范: `~/ai/rules/coding/maven-guidelines.md`
-- Git 工作流: `~/ai/rules/coding/git-guidelines.md`
-- 文档注释规范: `~/ai/rules/document/document-guidelines.md`
+
+> 详见 `~/ai/rules/coding/java-guidelines.md`
+
+- **命名约定**:
+  - 类名 PascalCase / 方法名 camelCase / 常量名 UPPER_SNAKE_CASE
+  - 包名全小写、域名反写: `com.only.ai.master.{context}.{layer}`
+- **异常分层**: `BusinessException` (业务) / `SystemException` (系统) / `ValidationException` (参数) / `DataNotFoundException` (数据)
+- **日志规范**: ERROR (系统异常) → WARN (业务异常) → INFO (关键路径) → DEBUG (调试流程)
+- **JavaDoc**: 所有公共 API 必须包含 `@param` / `@return` / `@throws` 注释
+- **领域模型**: 行为方法内聚于聚合根，状态变更通过领域行为方法触发
+
+### 工程结构规范
+
+> 详见 `~/ai/rules/coding/project-structure.md`
+
+- **分层架构**: DDD 六边形分层，依赖方向单向向下
+- **分层约束**:
+
+| 层级 | 禁止事项 |
+|------|---------|
+| API 层 | 禁止直接暴露领域对象 |
+| Service 层 | 不含业务逻辑，仅协议适配 |
+| Application 层 | 只接收 Command/Query，只返回 Result，不直接操作领域对象内部状态 |
+| Domain 层 | 不依赖任何技术框架 (除 Spring 注解)，纯业务逻辑 |
+| Infrastructure 层 | 实现 Domain 层定义的仓储接口 |
+
+- **依赖注入**: 领域层构造函数注入，应用层 `@Autowired` 字段注入
+- **对象转换**: 使用 MapStruct，转换逻辑统一放在 Factory 类中
+- **Maven 规范** (`~/ai/rules/coding/maven-guidelines.md`): 最小依赖原则 / 父 POM 统一版本管理 / 语义化版本号 / 零编译警告
+
+### Git 工作流
+
+> 详见 `~/ai/rules/coding/git-guidelines.md`
+
+- **提交格式**: Conventional Commits — `<type>(<scope>): <subject>`
+- **提交类型**:
+
+| 类型 | 场景 |
+|------|------|
+| `feature` | 新增功能 |
+| `fix` | 修复 Bug |
+| `docs` | 文档注释 |
+| `style` | 代码格式 (不影响运行) |
+| `refactor` | 重构优化 |
+| `performance` | 性能优化 |
+| `test` | 增加测试 |
+| `chore` | 构建工具、依赖管理 |
+| `revert` | 回退代码 |
+
+- **提交原则**: 原子性 (一个逻辑变更) / 完整性 (代码+测试) / 可回滚 / 可追溯 (关联需求编号)
+- **大功能拆分**: 功能分支 `feature/{name}` → 多次提交 → `--squash` 合并
+- **提交前检查**: 通过单元测试 + 编码规范 + 格式正确 + 关联需求
 
 ### 测试规范
-- 测试指南与质量门禁: `~/ai/rules/testing/testing-guidelines.md`
-- 覆盖率要求: ≥80% (Jacoco)
-- 测试命名: `{ClassName}Test` / `should{Behavior}When{Condition}`
-- 分层策略: 领域模型(单元) → 应用服务(集成) → API接口(E2E)
+
+> 详见 `~/ai/rules/testing/testing-guidelines.md`
+
+- **质量门禁**:
+
+| 指标 | 阈值 | 工具 |
+|------|------|------|
+| 单元测试覆盖率 | ≥80% | Jacoco |
+| 代码重复率 | ≤5% | PMD/CPD |
+| 严重漏洞 | 0 | SonarQube |
+| 编译警告 | 0 | Maven/Compiler |
+
+- **测试原则**: FIRST (Fast / Independent / Repeatable / Self-validating / Timely) + AAA 模式 (Arrange-Act-Assert) + 单一断言
+- **命名规范**: 类 `{ClassName}Test` / 方法 `should{ExpectedBehavior}When{Condition}`
+- **分层策略**:
+
+| 层级 | 覆盖范围 | Mock 策略 |
+|------|---------|----------|
+| 单元测试 (P0) | 领域模型、值对象、领域服务 | 不 Mock 领域对象；Mock 仓储接口 |
+| 集成测试 (P1) | 应用服务、仓储实现 | Mock 外部服务，使用 H2 内存库 |
+| E2E 测试 (P2) | HTTP 接口完整链路 | Mock 外部服务，使用 H2 内存库 |
+
+- **测试框架**: JUnit 5 + Mockito + AssertJ + Spring Boot Test (均 Spring Boot 内置)
 
 ### 命名规范 (基于项目实际)
 
@@ -412,7 +497,53 @@ stateDiagram-v2
 | TD-010 | `OrderServiceProvider` 缺少 `@Component`/`@Service` 注解 | [OrderServiceProvider.java](ai-master-service/src/main/java/com/only/ai/master/order/service/rpc/OrderServiceProvider.java) | P1 | 可能通过 Dubbo XML 配置注册，需确认 |
 | TD-011 | `OrderBuyDTO` 为空类，无任何字段 | [OrderBuyDTO.java](ai-master-api/src/main/java/com/only/ai/master/order/api/module/dto/OrderBuyDTO.java) | P2 | 添加返回给客户端的订单信息字段 |
 
+## 已知风险
+
+| 风险 | 影响范围 | 严重度 | 规避建议 |
+|------|----------|--------|----------|
+| 订单创建与库存锁定缺少分布式事务保障 | 下单核心链路 | 高 | 引入本地消息表或 Saga 模式保证最终一致性 |
+| `OrderEnableAction` 缺少 `@Component` 注解 (TD-002) | 下单流程运行时 | 高 | 启动后立即验证注入，或添加集成测试覆盖 |
+| 测试覆盖率 0%，无任何自动化质量保障 (TD-008) | 全局代码质量 | 高 | 优先按 `docs/tdd.md` 补充 P0 领域层单元测试 |
+| MySQL 驱动版本过旧 (5.1.30) | 数据库连接安全性与兼容性 | 中 | 升级到 mysql-connector-j 8.x，注意时区参数变更 |
+| `InventoryRepository` 无基础设施层实现 (TD-006) | 库存锁定功能完整性 | 中 | 创建 `InventoryDao` 实现类，或确认是否有外部服务承接 |
+| `OrderBuyRequest.validator()` 返回值语义反转 (TD-009) | RPC 入口参数校验 | 中 | 重构为 `isInvalid()` 或反转返回值语义 |
+| 商品数据依赖外部服务 (`GoodsCall`) | 下单流程可用性 | 中 | 增加 `@Cacheable` 降级策略和超时熔断 |
+| 单库单表架构，订单表无分库分表方案 | 业务增长后的数据库性能 | 低 | 预留分库分表扩展点，关注订单表数据增长 |
+
+## 工作约定
+
+### 会话开始时
+1. 阅读本 `AGENTS.md` 了解项目全貌
+2. 根据任务类型查阅 `docs/` 下相关文档:
+   - 业务需求相关 → `docs/prd.md`
+   - 架构设计相关 → `docs/add.md`
+   - 测试实现相关 → `docs/tdd.md`
+   - API 接口相关 → `docs/api/README.md`
+3. 确认当前工作上下文和涉及的领域边界 (Order / Goods / Inventory)
+
+### 会话进行中
+- 遇到不明确的业务规则，记录到待确认清单
+- 发现技术债务，登记到上方技术债务表
+- 代码修改遵循 DDD 分层约束，不跨层直接依赖
+- 重大修改必须遵循 SDD (Spec-Driven Development) 原则：先更新规范文档，再实现代码
+- 新增 API 接口时同步更新 `docs/api/README.md`
+- 领域模型变更时同步更新 `docs/add.md` 中的领域对象表和对象关系图
+
+### 会话结束时
+- 提炼发现的新业务规则，提示确认后更新到 `docs/` 相应文件
+- 提炼发现的开发规范、约束，提示确认后更新到 `AGENTS.md`
+- 更新本文件的会话历史摘要
+- 标注未完成事项和后续建议
+
 ## 会话历史摘要
+
+### 2026-02-24 - v3.0 结构化改进
+- 标题从"系统知识库"更名为"AI Agent 指南"，对齐标准模板
+- 开发规范章节从纯链接引用改为内联要点摘录 (需求/设计/代码/工程结构/Git/测试六大维度)
+- 新增「已知风险」章节，登记 8 项已识别风险及规避建议
+- 新增「工作约定」章节，定义会话开始/进行中/结束时的协作协议
+- 项目概述补充「启动年份（推测）」字段
+- 代码规模格式化为 KLOC 标准表示
 
 ### 2026-02-12 - v2.0 增强版 (全面逆向分析)
 - 阅读全部 54 个 Java 源文件，建立完整代码理解
